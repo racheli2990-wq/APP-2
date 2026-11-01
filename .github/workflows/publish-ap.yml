@@ -1,0 +1,32 @@
+name: Publish AP download
+on:
+  workflow_run:
+    workflows: ["Build Android APK"]
+    types: [completed]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/download-artifact@v4
+        with:
+          name: scanly-debug-apk
+          path: downloaded
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Publish file with alternate extension
+        run: |
+          mkdir -p downloads
+          cp downloaded/app-debug.apk downloads/Scanly.AP
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add downloads/Scanly.AP
+          git commit -m "Publish Scanly with AP extension"
+          git push origin HEAD:main
